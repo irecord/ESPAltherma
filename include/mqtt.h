@@ -2,14 +2,11 @@
 #include <EEPROM.h>
 #include "restart.h"
 
-#define MQTT_attr "espaltherma/ATTR"
-#define MQTT_lwt "espaltherma/LWT"
+#define MQTT_attr "emon/espaltherma/ATTR"
+#define MQTT_lwt "emon/espaltherma/LWT"
 
 #define EEPROM_CHK 1
 #define EEPROM_STATE 0
-
-#define MQTT_attr "espaltherma/ATTR"
-#define MQTT_lwt "espaltherma/LWT"
 
 #ifdef JSONTABLE
 char jsonbuff[MAX_MSG_SIZE] = "[{\0";
@@ -35,11 +32,11 @@ void sendValues()
   snprintf(jsonbuff + strlen(jsonbuff),MAX_MSG_SIZE - strlen(jsonbuff) , "\"%s\":\"%.3gV\",", "M5BatV", batteryVoltage);
 #elif ARDUINO_M5Stick_C
   //Add M5 APX values
-  snprintf(jsonbuff + strlen(jsonbuff),MAX_MSG_SIZE - strlen(jsonbuff) , "\"%s\":\"%.3gV\",\"%s\":\"%gmA\",", "M5VIN", M5.Axp.GetVinVoltage(),"M5AmpIn", M5.Axp.GetVinCurrent());
-  snprintf(jsonbuff + strlen(jsonbuff),MAX_MSG_SIZE - strlen(jsonbuff) , "\"%s\":\"%.3gV\",\"%s\":\"%gmA\",", "M5BatV", M5.Axp.GetBatVoltage(),"M5BatCur", M5.Axp.GetBatCurrent());
-  snprintf(jsonbuff + strlen(jsonbuff),MAX_MSG_SIZE - strlen(jsonbuff) , "\"%s\":\"%.3gmW\",", "M5BatPwr", M5.Axp.GetBatPower());
+  snprintf(jsonbuff + strlen(jsonbuff),MAX_MSG_SIZE - strlen(jsonbuff) , "\"%s\":\"%.3g\",\"%s\":\"%g\",", "M5VIN", M5.Axp.GetVinVoltage(),"M5AmpIn", M5.Axp.GetVinCurrent()); // V, mA
+  snprintf(jsonbuff + strlen(jsonbuff),MAX_MSG_SIZE - strlen(jsonbuff) , "\"%s\":\"%.3g\",\"%s\":\"%g\",", "M5BatV", M5.Axp.GetBatVoltage(),"M5BatCur", M5.Axp.GetBatCurrent()); // V, mA
+  snprintf(jsonbuff + strlen(jsonbuff),MAX_MSG_SIZE - strlen(jsonbuff) , "\"%s\":\"%.3g\",", "M5BatPwr", M5.Axp.GetBatPower()); //mW
 #endif
-  snprintf(jsonbuff + strlen(jsonbuff),MAX_MSG_SIZE - strlen(jsonbuff) , "\"%s\":\"%ddBm\",", "WifiRSSI", WiFi.RSSI());
+  snprintf(jsonbuff + strlen(jsonbuff),MAX_MSG_SIZE - strlen(jsonbuff) , "\"%s\":\"%d\",", "WifiRSSI", WiFi.RSSI()); // dBm
   snprintf(jsonbuff + strlen(jsonbuff),MAX_MSG_SIZE - strlen(jsonbuff) , "\"%s\":\"%d\",", "FreeMem", ESP.getFreeHeap());
   jsonbuff[strlen(jsonbuff) - 1] = '}';
 #ifdef JSONTABLE
@@ -83,9 +80,8 @@ void reconnectMqtt()
     if (client.connect("ESPAltherma-dev", MQTT_USERNAME, MQTT_PASSWORD, MQTT_lwt, 0, true, "Offline"))
     {
       Serial.println("connected!");
-      client.publish("homeassistant/sensor/espAltherma/config", "{\"name\":\"AlthermaSensors\",\"stat_t\":\"~/LWT\",\"avty_t\":\"~/LWT\",\"pl_avail\":\"Online\",\"pl_not_avail\":\"Offline\",\"uniq_id\":\"espaltherma\",\"device\":{\"identifiers\":[\"ESPAltherma\"]}, \"~\":\"espaltherma\",\"json_attr_t\":\"~/ATTR\"}", true);
+      client.publish("emon/espAltherma/config", "{\"name\":\"AlthermaSensors\",\"stat_t\":\"~/STATESENS\",\"avty_t\":\"~/LWT\",\"pl_avail\":\"Online\",\"pl_not_avail\":\"Offline\",\"uniq_id\":\"espaltherma\",\"device\":{\"identifiers\":[\"ESPAltherma\"]}, \"~\":\"espaltherma\",\"json_attr_t\":\"~/ATTR\"}", true);
       client.publish(MQTT_lwt, "Online", true);
-      client.publish("homeassistant/switch/espAltherma/config", "{\"name\":\"Altherma\",\"cmd_t\":\"~/POWER\",\"stat_t\":\"~/STATE\",\"pl_off\":\"OFF\",\"pl_on\":\"ON\",\"~\":\"espaltherma\"}", true);
 
       // Subscribe
       client.subscribe("espaltherma/POWER");
@@ -132,16 +128,16 @@ void callbackTherm(byte *payload, unsigned int length)
   // Ok I'm not super proud of this, but it works :p
   if (payload[1] == 'F')
   { //turn off
-    digitalWrite(PIN_THERM, !PIN_THERM_ACTIVE_STATE);
-    saveEEPROM(!PIN_THERM_ACTIVE_STATE);
-    client.publish("espaltherma/STATE", "OFF", true);
+    digitalWrite(PIN_THERM, HIGH);
+    saveEEPROM(HIGH);
+    client.publish("emon/espaltherma/STATE", "OFF");
     mqttSerial.println("Turned OFF");
   }
   else if (payload[1] == 'N')
   { //turn on
-    digitalWrite(PIN_THERM, PIN_THERM_ACTIVE_STATE);
-    saveEEPROM(PIN_THERM_ACTIVE_STATE);
-    client.publish("espaltherma/STATE", "ON", true);
+    digitalWrite(PIN_THERM, LOW);
+    saveEEPROM(LOW);
+    client.publish("emon/espaltherma/STATE", "ON");
     mqttSerial.println("Turned ON");
   }
   else if (payload[0] == 'R')//R(eset/eboot)
