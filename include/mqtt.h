@@ -112,8 +112,8 @@ void reconnectMqtt()
         ArduinoOTA.handle();
       }
 
-      if (i++ == 100) {
-        Serial.printf("Tried for 500 sec, rebooting now.");
+      if (i++ == 20) {
+        Serial.printf("Tried for 100 sec, rebooting now.");
         restart_board();
       }
     }
