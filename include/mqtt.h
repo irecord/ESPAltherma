@@ -26,6 +26,8 @@ void sendValues()
   snprintf(jsonbuff + strlen(jsonbuff),MAX_MSG_SIZE - strlen(jsonbuff) , "\"%s\":\"%.3g\",\"%s\":\"%g\",", "M5BatV", M5.Axp.GetBatVoltage(),"M5BatCur", M5.Axp.GetBatCurrent()); // V, mA
   snprintf(jsonbuff + strlen(jsonbuff),MAX_MSG_SIZE - strlen(jsonbuff) , "\"%s\":\"%.3g\",", "M5BatPwr", M5.Axp.GetBatPower()); //mW
 #endif
+  //snprintf(jsonbuff + strlen(jsonbuff),MAX_MSG_SIZE - strlen(jsonbuff) , "\"%s\":\"%ddBm\",", "WifiRSSI", WiFi.RSSI());
+  //snprintf(jsonbuff + strlen(jsonbuff),MAX_MSG_SIZE - strlen(jsonbuff) , "\"%s\":\"%d\",", "FreeMem", ESP.getFreeHeap());
   snprintf(jsonbuff + strlen(jsonbuff),MAX_MSG_SIZE - strlen(jsonbuff) , "\"%s\":\"%d\",", "WifiRSSI", WiFi.RSSI()); // dBm
 
   jsonbuff[strlen(jsonbuff) - 1] = '}';
@@ -59,7 +61,7 @@ void readEEPROM(){
   }
 }
 
-void reconnect()
+void reconnectMqtt()
 {
   // Loop until we're reconnected
   int i = 0;
@@ -70,14 +72,21 @@ void reconnect()
     if (client.connect("ESPAltherma-dev", MQTT_USERNAME, MQTT_PASSWORD, MQTT_lwt, 0, true, "Offline"))
     {
       Serial.println("connected!");
+      //client.publish("homeassistant/sensor/espAltherma/config", "{\"name\":\"AlthermaSensors\",\"stat_t\":\"~/LWT\",\"avty_t\":\"~/LWT\",\"pl_avail\":\"Online\",\"pl_not_avail\":\"Offline\",\"uniq_id\":\"espaltherma\",\"device\":{\"identifiers\":[\"ESPAltherma\"]}, \"~\":\"espaltherma\",\"json_attr_t\":\"~/ATTR\"}", true);
       client.publish("emon/espAltherma/config", "{\"name\":\"AlthermaSensors\",\"stat_t\":\"~/STATESENS\",\"avty_t\":\"~/LWT\",\"pl_avail\":\"Online\",\"pl_not_avail\":\"Offline\",\"uniq_id\":\"espaltherma\",\"device\":{\"identifiers\":[\"ESPAltherma\"]}, \"~\":\"espaltherma\",\"json_attr_t\":\"~/ATTR\"}", true);
       client.publish(MQTT_lwt, "Online", true);
 
       // Subscribe
       client.subscribe("espaltherma/POWER");
 #ifdef PIN_SG1
-      client.publish("homeassistant/sg/espAltherma/config", "{\"name\":\"AlthermaSmartGrid\",\"cmd_t\":\"~/set\",\"stat_t\":\"~/state\",\"~\":\"espaltherma/sg\"}", true);
+      // Smart Grid
+      client.publish("homeassistant/select/espAltherma/sg/config", "{\"availability\":[{\"topic\":\"espaltherma/LWT\",\"payload_available\":\"Online\",\"payload_not_available\":\"Offline\"}],\"availability_mode\":\"all\",\"unique_id\":\"espaltherma_sg\",\"device\":{\"identifiers\":[\"ESPAltherma\"],\"manufacturer\":\"ESPAltherma\",\"model\":\"M5StickC PLUS ESP32-PICO\",\"name\":\"ESPAltherma\"},\"icon\":\"mdi:solar-power\",\"name\":\"EspAltherma Smart Grid\",\"command_topic\":\"espaltherma/sg/set\",\"command_template\":\"{% if value == 'Free Running' %} 0 {% elif value == 'Forced Off' %} 1 {% elif value == 'Recommended On' %} 2 {% elif value == 'Forced On' %} 3 {% else %} 0 {% endif %}\",\"options\":[\"Free Running\",\"Forced Off\",\"Recommended On\",\"Forced On\"],\"state_topic\":\"espaltherma/sg/state\",\"value_template\":\"{% set mapper = { '0':'Free Running', '1':'Forced Off', '2':'Recommended On', '3':'Forced On' } %} {% set word = mapper[value] %} {{ word }}\"}", true);
       client.subscribe("espaltherma/sg/set");
+      client.publish("espaltherma/sg/state", "0");
+#endif
+#ifndef PIN_SG1
+      // Publish empty retained message so discovered entities are removed from HA
+      client.publish("homeassistant/select/espAltherma/sg/config", "", true);
 #endif
     }
     else
@@ -107,6 +116,7 @@ void callbackTherm(byte *payload, unsigned int length)
   { //turn off
     digitalWrite(PIN_THERM, HIGH);
     saveEEPROM(HIGH);
+    //client.publish("espaltherma/STATE", "OFF", true);
     client.publish("emon/espaltherma/STATE", "OFF");
     mqttSerial.println("Turned OFF");
   }
@@ -114,6 +124,7 @@ void callbackTherm(byte *payload, unsigned int length)
   { //turn on
     digitalWrite(PIN_THERM, LOW);
     saveEEPROM(LOW);
+    //client.publish("espaltherma/STATE", "ON", true);
     client.publish("emon/espaltherma/STATE", "ON");
     mqttSerial.println("Turned ON");
   }

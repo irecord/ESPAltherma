@@ -54,8 +54,9 @@ void updateValues(char regID)
     for (size_t j = 0; j < strlen(labels[i]->asString); j++)
     {
       char c = labels[i]->asString[j];
-      if (!isdigit(c) && c!='.'){
+      if (!isdigit(c) && c!='.' && !(c=='-' && j==0)){
         alpha = true;
+        break;
       }
     }
 
@@ -98,6 +99,21 @@ void extraLoop()
 #endif
 }
 
+void checkWifi()
+{
+  int i = 0;
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    delay(500);
+    Serial.print(".");
+    if (i++ == 120)
+    {
+      Serial.printf("Tried connecting for 60 sec, rebooting now.");
+      restart_board();
+    }
+  }
+}
+
 void setup_wifi()
 {
   delay(10);
@@ -127,16 +143,7 @@ void setup_wifi()
   #endif
 
   WiFi.begin(WIFI_SSID, WIFI_PWD);
-  int i = 0;
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    delay(500);
-    Serial.print(".");
-    if (i++ == 100)
-    {
-      restart_board();
-    }
-  }
+  checkWifi();
   mqttSerial.printf("Connected. IP Address: %s\n", WiFi.localIP().toString().c_str());
 }
 
@@ -228,7 +235,7 @@ void setup()
   client.setServer(MQTT_SERVER, MQTT_PORT);
   mqttSerial.print("Connecting to MQTT server...");
   mqttSerial.begin(&client, "espaltherma/log");
-  reconnect();
+  reconnectMqtt();
   mqttSerial.println("OK!");
 
   initRegistries();
@@ -246,28 +253,33 @@ void waitLoop(uint ms){
 void loop()
 {
   unsigned long start = millis();
+  if (WiFi.status() != WL_CONNECTED)
+  { //restart board if needed
+    checkWifi();
+  }
   if (!client.connected())
   { //(re)connect to MQTT if needed
-    reconnect();
+    reconnectMqtt();
   }
   //Querying all registries
   for (size_t i = 0; (i < 32) && registryIDs[i] != 0xFF; i++)
   {
-    char buff[64] = {0};
+    unsigned char buff[64] = {0};
     int tries = 0;
-    while (!queryRegistry(registryIDs[i], buff) && tries++ < 3)
+    while (!queryRegistry(registryIDs[i], buff, PROTOCOL) && tries++ < 3)
     {
       mqttSerial.println("Retrying...");
       waitLoop(1000);
     }
-    if (registryIDs[i] == buff[1]) //if replied registerID is coherent with the command
+    unsigned char receivedRegistryID = PROTOCOL == 'S' ? buff[0] : buff[1];
+    if (registryIDs[i] == receivedRegistryID) //if replied registerID is coherent with the command
     {
-      converter.readRegistryValues(buff); //process all values from the register
+      converter.readRegistryValues(buff, PROTOCOL); //process all values from the register
       updateValues(registryIDs[i]);       //send them in mqtt
       //waitLoop(500);//wait .5sec between registries
     }
   }
   sendValues();//Send the full json message
-  mqttSerial.printf("Done. Waiting %d ms...", FREQUENCY - millis() + start);
+  mqttSerial.printf("Done. Waiting %ld ms...", FREQUENCY - millis() + start);
   waitLoop(FREQUENCY - millis() + start);
 }
