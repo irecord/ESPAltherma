@@ -98,8 +98,8 @@ void reconnectMqtt()
         ArduinoOTA.handle();
       }
 
-      if (i++ == 100) {
-        Serial.printf("Tried for 500 sec, rebooting now.");
+      if (i++ == 20) {
+        Serial.printf("Tried for 100 sec, rebooting now.");
         restart_board();
       }
     }
@@ -117,7 +117,7 @@ void callbackTherm(byte *payload, unsigned int length)
     digitalWrite(PIN_THERM, HIGH);
     saveEEPROM(HIGH);
     //client.publish("espaltherma/STATE", "OFF", true);
-    client.publish("emon/espaltherma/STATE", "OFF");
+    client.publish("emon/espaltherma/STATE", "OFF", true);
     mqttSerial.println("Turned OFF");
   }
   else if (payload[1] == 'N')
@@ -125,7 +125,7 @@ void callbackTherm(byte *payload, unsigned int length)
     digitalWrite(PIN_THERM, LOW);
     saveEEPROM(LOW);
     //client.publish("espaltherma/STATE", "ON", true);
-    client.publish("emon/espaltherma/STATE", "ON");
+    client.publish("emon/espaltherma/STATE", "ON", true);
     mqttSerial.println("Turned ON");
   }
   else if (payload[0] == 'R')//R(eset/eboot)
