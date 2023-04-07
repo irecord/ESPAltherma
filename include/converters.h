@@ -1,3 +1,6 @@
+#ifndef ESPALTHERMA_CONVERTERS_H
+#define ESPALTHERMA_CONVERTERS_H
+
 // convert read registry value to the expected format based on convID
 #include <string.h>
 char buff[64];
@@ -464,3 +467,5 @@ private:
         return result;
     }
 };
+
+#endif
