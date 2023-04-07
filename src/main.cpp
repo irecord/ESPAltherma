@@ -371,6 +371,7 @@ void waitLoop(uint ms){
       while (millis() < start + ms) //wait .5sec between registries
       {
         extraLoop();
+        CheckWifiRequest();
       }
 }
 
@@ -405,8 +406,6 @@ void loop()
   }
   sendValues();//Send the full json message
   mqttSerial.printf("Done. Waiting %ld ms...", FREQUENCY - millis() + start);
-
-  CheckWifiRequest();
 
   waitLoop(FREQUENCY - millis() + start);
 }
