@@ -30,6 +30,7 @@
 #include "comm.h"
 #include "mqtt.h"
 #include "restart.h"
+#include "wifiRequestor.h" // Wifi Requests
 
 Converter converter;
 char registryIDs[32]; //Holds the registries to query
@@ -404,5 +405,8 @@ void loop()
   }
   sendValues();//Send the full json message
   mqttSerial.printf("Done. Waiting %ld ms...", FREQUENCY - millis() + start);
+
+  CheckWifiRequest();
+
   waitLoop(FREQUENCY - millis() + start);
 }

@@ -1,3 +1,6 @@
+#ifndef ESPALTHERMA_COMM_H
+#define ESPALTHERMA_COMM_H
+
 #include <Arduino.h>
 #include <HardwareSerial.h>
 #ifdef ARDUINO_ARCH_ESP8266
@@ -128,3 +131,5 @@ bool queryRegistry(char regID, unsigned char *buffer, char protocol='I')
     return true;
   }
 }
+
+#endif
