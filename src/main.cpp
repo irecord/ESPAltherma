@@ -181,6 +181,7 @@ void checkWifi()
       restart_board();
     }
   }
+  WifiInit();
 }
 
 void setup_wifi()

@@ -17,81 +17,94 @@
 
 WiFiServer server(80);
 
-LabelDef ParseUri(String request)
+void WifiInit()
 {
-    String querystring = request.substring(request.indexOf('?') + 1);
-    LinkedList<String> keyValuePairs;
-
-    int from = 0;
-    while(from < querystring.length())
-    {
-        int end = querystring.indexOf('&', from);
-        if(end == -1)
-            end = querystring.length();
-
-        String keyValuePair = querystring.substring(from + 1, end);
-        keyValuePairs.Append(keyValuePair);
-
-        from = end;
-    }
-
-    if(keyValuePairs.getLength() != 5)
-        return LabelDef();
-
-    int Register, Offset, Conversion, DataSize, Type;
-    while(keyValuePairs.next())
-    {
-        String pair = keyValuePairs.getCurrent();
-        char key = pair[0];
-        String value = pair.substring(2);
-        
-        switch(key)
-        {
-            case 'r':
-                Register = value.toInt();
-                break;
-            case 'o':
-                Offset = value.toInt();
-                break;
-            case 'c':
-                Conversion = value.toInt();
-                break;
-            case 'd':
-                DataSize = value.toInt();
-                break;
-            case 't':
-                Type = value.toInt();
-                break;
-        }
-    }
-    return LabelDef(Register, Offset, Conversion, DataSize, Type, "None");
+  server.begin();
 }
 
-void getValue(char regID, Converter* converter, WiFiClient* wifiClient)
+bool ParseRequest(String request, LabelDef* label)
 {
-  LabelDef *labels[128];
-  int num = 0;
-  converter->getLabels(regID, labels, num);
+  if(request.length() == 0)
+    return false;
 
-  for (int i = 0; i < num; i++)
+  Serial.printf("ParseRequest: Request: %s\n", request.c_str());
+  String querystring = request.substring(request.indexOf('?') + 1);
+
+  Serial.printf("ParseRequest: QueryString: %s\n", querystring.c_str());
+  LinkedList<String> keyValuePairs;
+
+  int from = 0;
+  while (from < querystring.length())
   {
-    bool alpha = false;
-    for (size_t j = 0; j < strlen(labels[i]->asString); j++)
-    {
-      char c = labels[i]->asString[j];
-      if (!isdigit(c) && c!='.' && !(c=='-' && j==0)){
-        alpha = true;
-        break;
-      }
-    }
+    int end = querystring.indexOf('&', from);
+    if (end == -1)
+      end = querystring.length();
 
-    char output[200];
-    if (alpha){  
-      wifiClient->printf("\"%s\":\"%s\",", labels[i]->label, labels[i]->asString);
+    String keyValuePair = querystring.substring(from, end);
+    keyValuePairs.Append(keyValuePair);
+    
+    Serial.printf("ParseRequest: KeyValuePair: %s\n", keyValuePair.c_str());
+
+    from = end + 1;
+  }
+
+  if (keyValuePairs.getLength() < 1)
+    return false;
+
+  do
+  {
+    String pair = keyValuePairs.getCurrent();
+    char key = pair[0];
+    String value = pair.substring(2);
+
+    switch (key)
+    {
+    case 'r':
+      label->registryID = value.toInt();
+      break;
+    case 'o':
+      label->offset = value.toInt();
+      break;
+    case 'c':
+      label->convid = value.toInt();
+      break;
+    case 'd':
+      label->dataSize = value.toInt();
+      break;
+    case 't':
+      label->dataType = value.toInt();
+      break;
     }
-    else{//number, no quotes
-      wifiClient->printf("\"%s\":%s,", labels[i]->label, labels[i]->asString);
+  } while (keyValuePairs.next());
+
+  return true;
+}
+
+void getValue(LabelDef *label, Converter *converter, WiFiClient *wifiClient, unsigned char *data)
+{
+  unsigned char *input = data;
+  input += label->offset + 3;
+  converter->convert(label, input);
+
+  bool alpha = false;
+  for (size_t j = 0; j < strlen(label->asString); j++)
+  {
+    char c = label->asString[j];
+    if (!isdigit(c) && c != '.' && !(c == '-' && j == 0))
+    {
+      alpha = true;
+      break;
     }
+  }
+
+  char output[200];
+  if (alpha)
+  {
+    wifiClient->printf("\"%s\":\"%s\",", label->label, label->asString);
+  }
+  else
+  { // number, no quotes
+    wifiClient->printf("\"%s\":%s,", label->label, label->asString);
   }
 }
 
@@ -101,31 +114,28 @@ void CheckWifiRequest()
 
   if (!wifiClient)
     return;
-  
-  Serial.println("CheckWifiRequest: Have Client");
 
   wifiClient.setTimeout(1);
 
-  if (!wifiClient.connected() || !wifiClient.available())
+  String request = "";
+  while (wifiClient.connected())
   {
-    wifiClient.stop();
-    return;
+    if (wifiClient.available())
+      request += wifiClient.readString();
+    else
+      break;
   }
 
-  Serial.println("CheckWifiRequest: Available");
-  String request = wifiClient.readStringUntil('\n');
-
-  if (request.length() == 0)
-  {
-    wifiClient.stop();
+  LabelDef definition;
+  if(!ParseRequest(request, &definition))
     return;
-  }
 
-  Serial.println("CheckWifiRequest: Parsing");
-  LabelDef definition = ParseUri(request);
-  Converter converter;
-  unsigned char buff[64] = {0};
-  converter.readRegistryValues(buff, 'I'); //process all values from the register
+  Serial.printf("ParseRequest: Register %d\n", definition.registryID);
+  Serial.printf("ParseRequest: Offset %d\n", definition.offset);
+  Serial.printf("ParseRequest: Conversion %d\n", definition.convid);
+  Serial.printf("ParseRequest: DataSize %d\n", definition.dataSize);
+  Serial.printf("ParseRequest: Type %d\n", definition.dataType);
+  Serial.printf("ParseRequest: Label %s\n", definition.label);
 
   // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
   // and a content-type so the client knows what's coming, then a blank line,
@@ -134,9 +144,12 @@ void CheckWifiRequest()
   wifiClient.println("Content-type:text/html");
   wifiClient.println();
 
-  if(queryRegistry(definition.registryID, buff, 'I'))
+  unsigned char buff[64] = {0};
+  if (queryRegistry(definition.registryID, buff))
   {
-    getValue(definition.registryID, &converter, &wifiClient);
+    Serial.println("CheckWifiRequest: GetValue");
+    Converter converter;
+    getValue(&definition, &converter, &wifiClient, buff);
   }
   else
   {
