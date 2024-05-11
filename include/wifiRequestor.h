@@ -1,5 +1,5 @@
-#ifndef IR_URIPARSER_H
-#define IR_URIPARSER_H
+#ifndef IR_WIFIREQUESTOR_H
+#define IR_WIFIREQUESTOR_H
 
 #ifdef ARDUINO_ARCH_ESP8266
 #include <SoftwareSerial.h>
