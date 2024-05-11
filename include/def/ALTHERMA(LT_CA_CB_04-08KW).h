@@ -166,7 +166,7 @@ LabelDef labelDefs[] = {
 //{0x62,2,301,1,-1,"Not in use"},
 //{0x62,2,300,1,-1,"Emergency (indoor) active/not active"},
 //{0x62,3,105,2,1,"LW setpoint (add)"},
-//{0x62,5,105,2,1,"RT setpoint"},
+{0x62,5,105,2,1,"RT setpoint"},
 //{0x62,7,307,1,-1,"Add. Ext. RT Input Cool."},
 //{0x62,7,306,1,-1,"Add. Ext. RT Input Heat."},
 //{0x62,7,305,1,-1,"Main RT Cooling"},
