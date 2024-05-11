@@ -314,11 +314,11 @@ private:
         b = (char)(b << tableID % 10);
         if ((data[0] & b) > 0)
         {
-            strcat(ret, "ON");
+            strcat(ret, "1");
         }
         else
         {
-            strcat(ret, "OFF");
+            strcat(ret, "0");
         }
         return;
     }
@@ -423,11 +423,11 @@ private:
     {
         if (data[0] == 0)
         {
-            strcat(ret, "OFF");
+            strcat(ret, "0");
         }
         else
         {
-            strcat(ret, "ON");
+            strcat(ret, "1");
         }
     }
     // 201
