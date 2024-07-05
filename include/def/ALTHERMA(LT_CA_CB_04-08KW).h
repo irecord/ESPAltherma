@@ -30,7 +30,7 @@ LabelDef labelDefs[] = {
 //{0x10,1,307,1,-1,"Thermostat ON/OFF"},
 //{0x10,1,306,1,-1,"Restart standby"},
 //{0x10,1,305,1,-1,"Startup Control"},
-//{0x10,1,304,1,-1,"Defrost Operation"},
+{0x10,1,304,1,-1,"Defrost Operation"},
 //{0x10,1,303,1,-1,"Oil Return Operation"},
 //{0x10,1,302,1,-1,"Pressure equalizing operation"},
 //{0x10,1,301,1,-1,"Demand Signal"},
