@@ -18,7 +18,7 @@
 
 #define FREQUENCY 10000 //query values every 30 sec
 
-#if defined(ARDUINO_M5Stick_C) || defined(ARDUINO_M5Stick_C_Plus) || defined(ARDUINO_M5Stick_C_Plus2)
+#if defined(ARDUINO_M5Stick_C) || defined(ARDUINO_M5Stick_C_Plus) || defined(ARDUINO_M5Stick_C_Plus2)  || defined(ARDUINO_M5Stack_Tough)
 // Values used when M5StickC, M5STickCPlus or M5Stick_C_Plus2 environment is selected:
 #define RX_PIN    36// Pin connected to the TX pin of X10A 
 #define TX_PIN    26// Pin connected to the RX pin of X10A
@@ -67,6 +67,11 @@
 
 //Uncomment to disable common frequent log messages via MQTT to reduce network load
 //#define DISABLE_LOG_MESSAGES
+
+//Uncomment this line to enable DebugSerial - MQTT<>Serial gateway functionality
+//Messages received on espaltherma/serialTX are sent to serial port
+//Responses from serial port are published to espaltherma/serialRX
+//#define DEBUG_SERIAL
 
 
 //Uncomment *ONE* of the following according to your installation.

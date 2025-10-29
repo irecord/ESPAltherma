@@ -1,5 +1,5 @@
-#ifndef ESPALTHERMA_COMM_H
-#define ESPALTHERMA_COMM_H
+#ifndef COMM_H
+#define COMM_H
 
 #include <Arduino.h>
 #include <HardwareSerial.h>
@@ -132,4 +132,4 @@ bool queryRegistry(char regID, unsigned char *buffer, char protocol='I')
   }
 }
 
-#endif
+#endif // COMM_H
