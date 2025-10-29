@@ -27,10 +27,15 @@ bool ParseRequest(String request, LabelDef* label)
   if(request.length() == 0)
     return false;
 
-  Serial.printf("ParseRequest: Request: %s\n", request.c_str());
-  String querystring = request.substring(request.indexOf('?') + 1);
+  Serial.printf("\nParseRequest: Request: %s\n", request.c_str());
+  
+  int startOfQueryString = request.indexOf('?') + 1;
+  if(startOfQueryString < 2)
+    return false;
 
+  String querystring = request.substring(startOfQueryString);
   Serial.printf("ParseRequest: QueryString: %s\n", querystring.c_str());
+  
   LinkedList<String> keyValuePairs;
 
   int from = 0;
@@ -77,6 +82,9 @@ bool ParseRequest(String request, LabelDef* label)
     }
   } while (keyValuePairs.next());
 
+  if(label->registryID == 0)
+    return false;
+    
   return true;
 }
 

@@ -149,7 +149,7 @@ LabelDef labelDefs[] = {
 //{0x61,0,307,1,-1,"Data Enable/Disable"},
 //{0x61,1,152,1,-1,"Indoor Unit Address"},
 {0x61,2,105,2,1,"Leaving water temp. before BUH (R1T)"},
-//{0x61,4,105,2,1,"Leaving water temp. after BUH (R2T)"},
+//{0x61,4,105,2,1,"Leaving water temp. after BUH (R2T)"}, // TRIED: Always 0
 //{0x61,6,105,2,1,"Refrig. Temp. liquid side (R3T)"},
 {0x61,8,105,2,1,"Inlet water temp.(R4T)"},
 {0x61,10,105,2,1,"DHW tank temp. (R5T)"},
